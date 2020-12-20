@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Traits\Likeable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Cviebrock\EloquentTaggable\Taggable;
@@ -11,9 +12,11 @@ class Design extends Model
 {
     use HasFactory;
     use Taggable;
+    use Likeable;
 
     protected $fillable=[
       'user_id',
+      'team_id',
       'image',
       'title',
       'description',
@@ -27,6 +30,17 @@ class Design extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class);
+    }
+
+    public function comments()
+    {
+        return $this->morphMany(Comment::class, 'commentable')
+            ->orderBy('created_at', 'asc');
     }
 
     public function getImagesAttribute()

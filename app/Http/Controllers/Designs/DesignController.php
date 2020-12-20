@@ -6,6 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\DesignResource;
 use App\Models\Design;
 use App\Repositories\Contracts\IDesign;
+use App\Repositories\Eloquent\Criteria\EagerLoad;
+use App\Repositories\Eloquent\Criteria\ForUser;
+use App\Repositories\Eloquent\Criteria\IsLive;
+use App\Repositories\Eloquent\Criteria\LatestFirst;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Storage;
@@ -21,22 +25,35 @@ class DesignController extends Controller
 
     public function index()
     {
-        $designs = $this->designs->all();
+        $designs = $this->designs->withCriteria([
+            new LatestFirst(),
+            new IsLive(),
+            new ForUser(3),
+            new EagerLoad(['user', 'comments']) // coming from model relationship
+        ])->all();
         return DesignResource::collection($designs);
+    }
+
+    public function findDesign($id)
+    {
+        $design = $this->designs->find($id);
+        return new DesignResource($design);
     }
 
     public function update(Request $request, $id)
     {
-        $design = Design::findOrFail($id);
+        $design = $this->designs->find($id);
         $this->authorize('update', $design);
 
         $this->validate($request, [
            'title' => ['required', 'unique:designs,title,'. $id],
-            'description' => ['required', 'string', 'min:20', 'max:140'],
-            'tags' => ['required']
+           'description' => ['required', 'string', 'min:20', 'max:140'],
+           'tags' => ['required'],
+           'team' => ['required_if:assign_to_team,true']
         ]);
 
-        $design->update([
+        $design = $this->designs->update($id, [
+           'team_id' => $request->team,
            'title' => $request->title,
            'description' => $request->description,
            'slug' => Str::slug($request->title), // turns Hello world into hello-world
@@ -44,7 +61,7 @@ class DesignController extends Controller
         ]);
 
         // apply the tags
-        $design->retag($request->tags);
+        $this->designs->applyTags($id, $request->tags);
 
         return new DesignResource($design);
 
@@ -52,7 +69,7 @@ class DesignController extends Controller
 
     public function destroy($id)
     {
-        $design = Design::findOrFail($id);
+        $design = $this->designs->find($id);
         $this->authorize('delete', $design);
 
         // delete the files associated to the record
@@ -63,8 +80,21 @@ class DesignController extends Controller
             }
         }
 
-        $design->delete();
+        $this->designs->delete($id);
 
         return response()->json(['message' => 'Record deleted'], 200);
+    }
+
+    public function like($id)
+    {
+        $this->designs->like($id);
+        return response()->json(['message' => 'Successful'], 200);
+    }
+
+    public function checkIfUserHasLiked($designId)
+    {
+        $isLiked = $this->designs->isLikedByUser($designId);
+
+        return response()->json(['liked' => $isLiked], 200);
     }
 }

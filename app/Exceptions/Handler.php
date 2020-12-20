@@ -48,8 +48,8 @@ class Handler extends ExceptionHandler
         }
 
         if ($exception instanceof ModelNotFoundException && $request->expectsJson()) {
-        return response()->json(["errors" => [
-            "message" => "The resource was not found in the database."
+            return response()->json(["errors" => [
+                "message" => "The resource was not found in the database."
             ]], 404);
 
         }
@@ -58,7 +58,6 @@ class Handler extends ExceptionHandler
             return response()->json(["errors" => [
                 "message" => "No model defined"
             ]], 500);
-
         }
 
         return parent::render($request, $exception);
