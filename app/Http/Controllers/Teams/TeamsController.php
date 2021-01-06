@@ -97,7 +97,8 @@ class TeamsController extends Controller
      */
     public function findBySlug($slug)
     {
-
+        $team = $this->teams->findWhereFirst('slug', $slug);
+        return new TeamResource($team);
     }
 
     /*
@@ -105,7 +106,12 @@ class TeamsController extends Controller
      */
     public function destroy($id)
     {
+        $team = $this->teams->find($id);
+        $this->authorize('delete', $team);
 
+        $team->delete();
+
+        return response()->json(['message' => 'Deleted'], 200);
     }
 
     public function removeFromTeam($teamId, $userId)

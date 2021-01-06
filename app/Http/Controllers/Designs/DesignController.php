@@ -87,14 +87,58 @@ class DesignController extends Controller
 
     public function like($id)
     {
-        $this->designs->like($id);
-        return response()->json(['message' => 'Successful'], 200);
+        $total = $this->designs->like($id);
+        return response()->json([
+            'message' => 'Successful',
+            'total' => $total
+        ], 200);
     }
 
     public function checkIfUserHasLiked($designId)
     {
         $isLiked = $this->designs->isLikedByUser($designId);
-
         return response()->json(['liked' => $isLiked], 200);
+    }
+
+    public function search(Request $request)
+    {
+        $designs = $this->designs->search($request);
+        return DesignResource::collection($designs);
+    }
+
+    public function findBySlug($slug)
+    {
+        $design = $this->designs->withCriteria([
+            new IsLive()
+        ])->findWhereFirst('slug', $slug);
+
+        return new DesignResource($design);
+    }
+
+    public function getForTeam($teamId)
+    {
+        $design = $this->designs
+            ->withCriteria([new IsLive()])
+            ->findWhere('team_id', $teamId);
+
+        return DesignResource::collection($design);
+    }
+
+    public function getForUser($userId)
+    {
+        $design = $this->designs
+            ->withCriteria([new IsLive()])
+            ->findWhere('user_id', $userId);
+
+        return DesignResource::collection($design);
+    }
+
+    public function userOwnsDesign($id)
+    {
+        $design = $this->designs->withCriteria([
+           new ForUser(auth()->id())
+        ])->findWhereFirstOrFail('id', $id);
+
+        return new DesignResource($design);
     }
 }
