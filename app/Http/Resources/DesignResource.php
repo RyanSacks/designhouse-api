@@ -39,10 +39,12 @@ class DesignResource extends JsonResource
               'slug' => $this->team->slug
             ] : null,
             'comments_count' => $this->comments()->count(),
-            'comments' => CommentResource::collection(
-                $this->comments), // new UserResource($this->whenLoaded('comments'))
+            'comments' => new UserResource(
+                $this->whenLoaded('comments')
+            ),
             'user' => new UserResource(
-                $this->user) // new UserResource($this->whenLoaded('user'))
+                $this->whenLoaded('user')
+            )
         ];
     }
 }
